@@ -9,6 +9,7 @@
 
 ## Build artifacts
 node_modules/
+.vite/
 
 ## Mac OS X
 .DS_Store
@@ -16,6 +17,3 @@ node_modules/
 
 ## Logs
 /log**
-
-## Build noise
-pom.xml.bak
