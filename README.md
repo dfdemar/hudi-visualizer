@@ -2,6 +2,8 @@
 
 An interactive **React + Vite** app that demonstrates how **Apache Hudi** processes and manages data — from ingestion to commits, **Merge-on-Read (MoR)** vs **Copy-on-Write (CoW)** storage, **timeline instants** (`REQUESTED → INFLIGHT → COMPLETED`), **compaction**, **cleaning**, and **read simulation** with **time travel**.
 
+![](docs/ui-sample.png)
+
 ---
 
 ## Table of contents
