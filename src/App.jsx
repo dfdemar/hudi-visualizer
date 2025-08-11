@@ -179,6 +179,10 @@ export default function HudiVisualizer() {
     const [timeline, setTimeline] = useState([]);
     const [selectedInstant, setSelectedInstant] = useState(null);
 
+    // NEW: selection/hover details for FileGroups & files
+    const [selectedEntity, setSelectedEntity] = useState(null); // {type:'fileGroup'|'base'|'delta', data}
+    const [hoverEntity, setHoverEntity] = useState(null);
+
     // heartbeat
     useEffect(() => {
         const id = setInterval(() => {
@@ -428,17 +432,41 @@ export default function HudiVisualizer() {
 
                                 <div className="mt-4 grid grid-cols-1 gap-3">
                                     {fileGroups.map((fg) => (
-                                            <motion.div key={fg.id} layout className="p-3 border rounded-lg">
+                                            <motion.div key={fg.id} layout className="p-3 border rounded-lg hover:border-sky-300 transition cursor-pointer" onClick={() => setSelectedEntity({ type: 'fileGroup', data: fg })} onMouseEnter={() => setHoverEntity({ type: 'fileGroup', data: fg })} onMouseLeave={() => setHoverEntity(null)} title={`FileGroup ${fg.id} in ${fg.partition} — base:${fg.baseFiles.length} delta:${fg.deltaFiles.length}`}>
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div>
                                                         <div className="text-sm font-medium">{fg.id} — {fg.partition}</div>
                                                         <div className="text-xs text-slate-500">Base: {fg.baseFiles.length} • Delta: {fg.deltaFiles.length}</div>
                                                         <div className="flex flex-wrap gap-2 mt-2">
                                                             {fg.baseFiles.map((b) => (
-                                                                    <span key={b.id} className="px-2 py-1 text-xs bg-slate-100 rounded">B v{b.version} ({b.rows}r)</span>
+                                                                    <span
+                                                                            key={b.id}
+                                                                            className="px-2 py-1 text-xs bg-slate-100 rounded hover:ring-2 hover:ring-slate-300 cursor-pointer"
+                                                                            title={`Base file v${b.version} • rows:${b.rows} • instant:${b.instantTime}`}
+                                                                            onMouseEnter={() => setHoverEntity({ type: 'base', data: { ...b, fileGroupId: fg.id, partition: fg.partition } })}
+                                                                            onMouseLeave={() => setHoverEntity(null)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedEntity({ type: 'base', data: { ...b, fileGroupId: fg.id, partition: fg.partition } });
+                                                                            }}
+                                                                    >
+                              B v{b.version} ({b.rows}r)
+                            </span>
                                                             ))}
                                                             {fg.deltaFiles.map((d) => (
-                                                                    <span key={d.id} className="px-2 py-1 text-xs bg-amber-100 rounded">Δ v{d.version} ({d.rows}r)</span>
+                                                                    <span
+                                                                            key={d.id}
+                                                                            className="px-2 py-1 text-xs bg-amber-100 rounded hover:ring-2 hover:ring-amber-300 cursor-pointer"
+                                                                            title={`Delta file v${d.version} • rows:${d.rows} • instant:${d.instantTime}`}
+                                                                            onMouseEnter={() => setHoverEntity({ type: 'delta', data: { ...d, fileGroupId: fg.id, partition: fg.partition } })}
+                                                                            onMouseLeave={() => setHoverEntity(null)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedEntity({ type: 'delta', data: { ...d, fileGroupId: fg.id, partition: fg.partition } });
+                                                                            }}
+                                                                    >
+                              Δ v{d.version} ({d.rows}r)
+                            </span>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -450,6 +478,9 @@ export default function HudiVisualizer() {
                                             </motion.div>
                                     ))}
                                 </div>
+
+                                {/* Info panel for hovered/selected entity */}
+                                <EntityInfoPanel entity={hoverEntity || selectedEntity} clearSelection={() => setSelectedEntity(null)} />
                             </div>
 
                             {/* Hudi Timeline */}
@@ -587,6 +618,32 @@ export default function HudiVisualizer() {
 /***********************************\
  |* Read Simulator                  *|
  \***********************************/
+/***********************************\
+ |* Entity Info Panel              *|
+ \***********************************/
+function EntityInfoPanel({ entity, clearSelection }) {
+    if (!entity) return null;
+    const { type, data } = entity;
+    const common = (
+            <div className="text-xs text-slate-600 space-y-1">
+                {data.partition && <div><span className="font-medium">Partition:</span> {data.partition}</div>}
+                {data.fileGroupId && <div><span className="font-medium">FileGroup:</span> {data.fileGroupId}</div>}
+                {data.instantTime && <div><span className="font-medium">Instant:</span> {data.instantTime}</div>}
+                {typeof data.rows === 'number' && <div><span className="font-medium">Rows:</span> {data.rows}</div>}
+                {typeof data.version === 'number' && <div><span className="font-medium">Version:</span> v{data.version}</div>}
+            </div>
+    );
+    return (
+            <div className="mt-3 border rounded-xl p-3 bg-sky-50">
+                <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold">{type === 'fileGroup' ? `FileGroup ${data.id}` : type === 'base' ? `Base File ${data.id}` : `Delta File ${data.id}`}</div>
+                    <button className="text-xs px-2 py-1 rounded bg-slate-200" onClick={clearSelection}>Close</button>
+                </div>
+                <div className="mt-2">{common}</div>
+            </div>
+    );
+}
+
 function ReadSimulator({ fileGroups, timeline, storage }) {
     const [mode, setMode] = useState("snapshot"); // 'snapshot' | 'incremental'
     const completedInstants = useMemo(() => timeline.filter((i) => i.state === "COMPLETED"), [timeline]);
