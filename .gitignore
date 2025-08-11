@@ -1,0 +1,21 @@
+## IntelliJ
+.idea/
+*.iml
+
+## Eclipse
+.settings
+.classpath
+.project
+
+## Build artifacts
+node_modules/
+
+## Mac OS X
+.DS_Store
+*/.DS_Store
+
+## Logs
+/log**
+
+## Build noise
+pom.xml.bak
